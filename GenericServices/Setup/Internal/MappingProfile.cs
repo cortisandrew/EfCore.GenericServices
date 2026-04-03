@@ -18,9 +18,12 @@ namespace GenericServices.Setup.Internal
     {
         public bool IgnoreReadOnlyAttributes { get; private set; }
 
-        internal MappingProfile(bool ignoreReadOnlyAttributes)
+        public bool IgnorePropertiesWithInaccessibleSetters { get; private set; }
+
+        internal MappingProfile(bool ignoreReadOnlyAttributes, bool ignorePropertiesWithInaccessibleSetters = false)
         {
             IgnoreReadOnlyAttributes = ignoreReadOnlyAttributes;
+            IgnorePropertiesWithInaccessibleSetters = ignorePropertiesWithInaccessibleSetters;
         }
 
         /* Remarks: The code below is now depracated as the responsibility is now moved elsewhere

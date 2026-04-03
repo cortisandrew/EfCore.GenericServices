@@ -2,6 +2,7 @@
 // Licensed under MIT license. See License.txt in the project root for license information.
 
 using GenericServices.Configuration.Internal;
+using GenericServices.Helpers;
 using GenericServices.Helpers.GenericServices.Helpers;
 using GenericServices.Internal;
 using GenericServices.Internal.Decoders;
@@ -138,7 +139,9 @@ namespace GenericServices.PublicButHidden
         {
             var entityInfo = _context.GetEntityInfoThrowExceptionIfNotThere(typeof(TEntity));
 
-            TypeAdapterConfig<TEntity, TDto>.NewConfig().SetIgnoreReadOnly(_configAndMapper.MapsterReadConfig.IgnoreReadOnlyAttributes);
+            TypeAdapterConfig<TEntity, TDto>.NewConfig()
+                .SetIgnoreReadOnly(_configAndMapper.MapsterReadConfig.IgnoreReadOnlyAttributes)
+                .When(_configAndMapper.MapsterReadConfig.IgnorePropertiesWithInaccessibleSetters, config => config.IgnoreAllPropertiesWithAnInaccessibleSetter());
 
             return query(_context.Set<TEntity>())
                .ProjectToType<TDto>();

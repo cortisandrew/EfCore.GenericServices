@@ -3,6 +3,7 @@
 
 using DataLayer.EfClasses;
 using GenericServices.Helpers.GenericServices.Helpers;
+using GenericServices.Setup.Internal;
 using Mapster;
 using System;
 using System.ComponentModel;
@@ -121,13 +122,19 @@ namespace Tests.UnitTests.Libraries
         public void TestDirectMappingToBookNotSetPrivateSetter()
         {
             //SETUP
-            var wrappedMapper = MapsterTestHelpers.CreateWrapperMapper<BookTitle, Book>();
+            var wrappedMapper = MapsterTestHelpers.CreateWrapperMapper<BookTitle, Book>(
+                readProfile: new MappingProfile(false, true),
+                saveProfile: new MappingProfile(true, true));
+
+            CreateConfigGenerator.ConfigGenerator<Book, BookTitle>.ManualConfigureReadSaveMappings(wrappedMapper);
+
             var entity = DddEfTestData.CreateFourBooks().First();
 
             //ATTEMPT
             var dto = new BookTitle { Title = "New Title" };
 
             var data = dto.Adapt(entity);
+
 
             // var data = wrappedMapper.MapperSaveConfig.CreateMapper().Map(dto, entity);
 

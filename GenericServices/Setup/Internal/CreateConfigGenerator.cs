@@ -2,10 +2,13 @@
 // Licensed under MIT license. See License.txt in the project root for license information.
 
 using GenericServices.Configuration;
+using GenericServices.Helpers;
 using GenericServices.Helpers.GenericServices.Helpers;
 using GenericServices.Internal.Decoders;
+using GenericServices.PublicButHidden;
 using Mapster;
 using System;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace GenericServices.Setup.Internal
 {
@@ -55,12 +58,21 @@ namespace GenericServices.Setup.Internal
                 {
                     // Create a default read mapping using Mapster's conventions
                     typeAdapterSetter = TypeAdapterConfig<TEntity, TDto>.NewConfig()
-                        .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes);  // Automatically apply ReadOnly attribute information based on profile
+                        .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes)  // Automatically apply ReadOnly attribute information based on profile
+                        .When(profile.IgnorePropertiesWithInaccessibleSetters, config => config.IgnoreAllPropertiesWithAnInaccessibleSetter());
                 }
 
                 // typeAdapterSetter.Compile(); // Compiling here causes issues later...
 
                 return typeAdapterSetter;
+            }
+
+            public static TypeAdapterSetter<TEntity, TDto> ManualConfigureReadMapping(MappingProfile profile)
+            {
+                // Create a default read mapping using Mapster's conventions
+                return TypeAdapterConfig<TEntity, TDto>.NewConfig()
+                    .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes)  // Automatically apply ReadOnly attribute information based on profile
+                    .When(profile.IgnorePropertiesWithInaccessibleSetters, config => config.IgnoreAllPropertiesWithAnInaccessibleSetter());
             }
 
             /// <summary>
@@ -79,12 +91,29 @@ namespace GenericServices.Setup.Internal
                 if (!(_config?.ConfigureSaveMapping(out typeAdapterSetter) ?? false))
                 {
                     typeAdapterSetter = TypeAdapterConfig<TDto, TEntity>.NewConfig()
-                        .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes); // Automatically apply ReadOnly attribute information based on profile
+                        .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes) // Automatically apply ReadOnly attribute information based on profile
+                        .When(profile.IgnorePropertiesWithInaccessibleSetters, config => config.IgnoreAllPropertiesWithAnInaccessibleSetter());
                 }
 
                 // typeAdapterSetter.Compile(); // Compiling here causes issues later...
 
                 return typeAdapterSetter;
+            }
+
+            public static TypeAdapterSetter<TDto, TEntity> ManualConfigureSaveMapping(MappingProfile profile)
+            {
+                return TypeAdapterConfig<TDto, TEntity>.NewConfig()
+                        .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes) // Automatically apply ReadOnly attribute information based on profile
+                        .When(profile.IgnorePropertiesWithInaccessibleSetters, config => config.IgnoreAllPropertiesWithAnInaccessibleSetter());
+            }
+
+            public static void ManualConfigureReadSaveMappings(WrappedAndMapper wrappedAndMapper)
+            {
+                MappingProfile readConfig = wrappedAndMapper.MapsterReadConfig;
+                MappingProfile saveConfig = wrappedAndMapper.MapsterSaveConfig;
+
+                ManualConfigureReadMapping(readConfig);
+                ManualConfigureSaveMapping(saveConfig);
             }
         }
     }
