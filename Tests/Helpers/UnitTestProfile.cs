@@ -1,43 +1,50 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using System.ComponentModel;
-using System.Reflection;
-using AutoMapper;
-using AutoMapper.Internal;
+using GenericServices.Configuration;
+using GenericServices.Helpers.GenericServices.Helpers;
+using GenericServices.Setup.Internal;
+using Mapster;
 
 namespace Tests.Helpers
 {
-    public class UnitTestProfile : Profile
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <remarks>
+    /// In programs, you should only configure the mapping once at startup
+    /// </remarks>
+    public class UnitTestProfile
     {
+        MappingProfile _mappingProfile;
+
         public UnitTestProfile(bool addIgnoreParts)
         {
-            if (addIgnoreParts)
-                this.Internal().ForAllPropertyMaps(pm => Filter(pm.SourceMember), (pm, opt) => opt.Ignore());
+            _mappingProfile = new MappingProfile(addIgnoreParts);
         }
 
-        public void AddReadMap<TIn, TOut>(Action<IMappingExpression<TIn, TOut>> alterMapping = null)
+        public void AddReadMap<TIn, TOut>(PerDtoConfig<TIn, TOut> alterMapping = null)
+            where TIn : class where TOut : class
         {
-            if (alterMapping == null)
-                CreateMap<TIn, TOut>();
-            else
-                alterMapping(CreateMap<TIn, TOut>());
+            // TypeAdapterSetter<TOut, TIn>? setter;
+
+            if (!(alterMapping?.ConfigureReadMapping(out _) ?? false)) // if true, read mapping is configured and no need to reconfigure 
+            {
+                // Create a default read mapping using Mapster's conventions
+                TypeAdapterConfig<TIn, TOut>.NewConfig();
+            }
         }
 
-        public void AddWriteMap<TIn, TOut>(Action<IMappingExpression<TIn, TOut>> alterMapping = null)
+        public void AddWriteMap<TIn, TOut>(PerDtoConfig<TIn, TOut> alterMapping = null)
+            where TIn : class where TOut : class
         {
-            if (alterMapping == null)
-                CreateMap<TIn, TOut>().IgnoreAllPropertiesWithAnInaccessibleSetter();
-            else
-                alterMapping(CreateMap<TIn, TOut>().IgnoreAllPropertiesWithAnInaccessibleSetter());
-        }
-
-        private bool Filter(MemberInfo member)
-        {
-            var readOnlyAttr = member.GetCustomAttribute<ReadOnlyAttribute>();
-            var isReadOnly = readOnlyAttr?.IsReadOnly ?? false;
-            return isReadOnly;
+            if (!(alterMapping?.ConfigureSaveMapping(out _) ?? false)) // if true, read mapping is configured and no need to reconfigure 
+            {
+                // Create a default write mapping using Mapster's conventions
+                TypeAdapterConfig<TIn, TOut>.NewConfig()
+                    .IgnoreAllPropertiesWithAnInaccessibleSetter()
+                    .SetIgnoreReadOnly(_mappingProfile.IgnoreReadOnlyAttributes);  // Automatically apply ReadOnly attribute information based on profile
+            }
         }
     }
 }

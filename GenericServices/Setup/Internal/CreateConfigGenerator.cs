@@ -1,10 +1,11 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using AutoMapper;
 using GenericServices.Configuration;
+using GenericServices.Helpers.GenericServices.Helpers;
 using GenericServices.Internal.Decoders;
+using Mapster;
+using System;
 
 namespace GenericServices.Setup.Internal
 {
@@ -14,7 +15,7 @@ namespace GenericServices.Setup.Internal
         {
             var myGeneric = typeof(ConfigGenerator<,>);
             var copierType = myGeneric.MakeGenericType(dtoType, entityInfo.EntityType);
-            Accessor = Activator.CreateInstance(copierType, new object[]{ configInfo});
+            Accessor = Activator.CreateInstance(copierType, new object[] { configInfo });
         }
 
         public dynamic Accessor { get; }
@@ -30,24 +31,60 @@ namespace GenericServices.Setup.Internal
                 _config = config;
             }
 
-            public void AddReadMappingToProfile(Profile readProfile)
+            /// <summary>
+            /// </summary>
+            /// <param name="profile"></param>
+            /// <returns></returns>
+            /// <remarks>
+            /// This is within the internal namespace - we are assuming that the scan and configuration only happens once, otherwise the mappings will be compiled multiple times
+            /// </remarks>
+            public TypeAdapterSetter<TEntity, TDto> ConfigureReadMapping(MappingProfile profile)
             {
-                if (_config?.AlterReadMapping == null)
-                    readProfile.CreateMap<TEntity, TDto>();
-                else
+                // Remarks:
+                // TODO: Optional, potential improvement: customise behaviour globally, e.g.:
+                // config.Default.PreserveReference(true); // for circular references
+                // config.Default.IgnoreNullValues(true);  // ignore nulls
+                // config.NameMatchingStrategy(NameMatchingStrategy.Flexible); // ignore case, underscores, etc.
+                // config.IgnoreNullValues(true);
+                // This allows for users to setup global customisation for uninitialised typeAdapterSetter. Possibly we can keep a separate default for read and save
+                // The idea is to allow users to configure the default behaviour without requiring to modify the code
+
+                TypeAdapterSetter<TEntity, TDto> typeAdapterSetter;
+
+                if (!(_config?.ConfigureReadMapping(out typeAdapterSetter) ?? false)) // if true, read mapping is configured and no need to reconfigure 
                 {
-                    _config.AlterReadMapping(readProfile.CreateMap<TEntity, TDto>());
+                    // Create a default read mapping using Mapster's conventions
+                    typeAdapterSetter = TypeAdapterConfig<TEntity, TDto>.NewConfig()
+                        .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes);  // Automatically apply ReadOnly attribute information based on profile
                 }
+
+                // typeAdapterSetter.Compile(); // Compiling here causes issues later...
+
+                return typeAdapterSetter;
             }
 
-            public void AddSaveMappingToProfile(Profile writeProfile)
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="profile"></param>
+            /// <returns></returns>
+            /// <remarks>
+            /// This is within the internal namespace - we are assuming that the scan and configuration only happens once, otherwise the mappings will be compiled multiple times
+            /// </remarks>
+            public TypeAdapterSetter<TDto, TEntity> ConfigureSaveMapping(MappingProfile profile)
             {
-                if (_config?.AlterSaveMapping == null)
-                    writeProfile.CreateMap<TDto, TEntity>().IgnoreAllPropertiesWithAnInaccessibleSetter();
-                else
+                TypeAdapterSetter<TDto, TEntity> typeAdapterSetter;
+
+                // Same as before - if no config exists, create default
+                if (!(_config?.ConfigureSaveMapping(out typeAdapterSetter) ?? false))
                 {
-                    _config.AlterSaveMapping(writeProfile.CreateMap<TDto, TEntity>().IgnoreAllPropertiesWithAnInaccessibleSetter());
+                    typeAdapterSetter = TypeAdapterConfig<TDto, TEntity>.NewConfig()
+                        .SetIgnoreReadOnly(profile.IgnoreReadOnlyAttributes); // Automatically apply ReadOnly attribute information based on profile
                 }
+
+                // typeAdapterSetter.Compile(); // Compiling here causes issues later...
+
+                return typeAdapterSetter;
             }
         }
     }

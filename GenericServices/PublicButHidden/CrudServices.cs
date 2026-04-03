@@ -1,18 +1,19 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using System.Linq;
-using System.Linq.Expressions;
-using AutoMapper.QueryableExtensions;
 using GenericServices.Configuration.Internal;
+using GenericServices.Helpers.GenericServices.Helpers;
 using GenericServices.Internal;
 using GenericServices.Internal.Decoders;
 using GenericServices.Internal.LinqBuilders;
 using GenericServices.Internal.MappingCode;
+using Mapster;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.EntityFrameworkCore;
 using StatusGeneric;
+using System;
+using System.Linq;
+using System.Linq.Expressions;
 
 namespace GenericServices.PublicButHidden
 {
@@ -40,8 +41,8 @@ namespace GenericServices.PublicButHidden
     /// You need to define the DbContext you need to carry out the CRUD actions 
     /// You should use this with dependency injection to get an instance of the sync CrudServices
     /// </summary>
-    public class CrudServices<TContext> : 
-        StatusGenericHandler, 
+    public class CrudServices<TContext> :
+        StatusGenericHandler,
         ICrudServices<TContext> where TContext : DbContext
     {
         private readonly IWrappedConfigAndMapper _configAndMapper;
@@ -63,7 +64,7 @@ namespace GenericServices.PublicButHidden
 
         /// <inheritdoc />
         public T ReadSingle<T>(params object[] keys) where T : class
-        {    
+        {
             T result;
             var entityInfo = _context.GetEntityInfoThrowExceptionIfNotThere(typeof(T));
             if (entityInfo.EntityStyle == EntityStyles.HasNoKey)
@@ -76,7 +77,7 @@ namespace GenericServices.PublicButHidden
             {
                 //else its a DTO, so we need to project the entity to the DTO and select the single element
                 var projector = new CreateMapper(_context, _configAndMapper, typeof(T), entityInfo);
-                result = ((IQueryable<T>) projector.Accessor.GetViaKeysWithProject(keys)).SingleOrDefault();
+                result = ((IQueryable<T>)projector.Accessor.GetViaKeysWithProject(keys)).SingleOrDefault();
             }
 
             if (result != null) return result;
@@ -131,11 +132,15 @@ namespace GenericServices.PublicButHidden
         }
 
         /// <inheritdoc />
-        public IQueryable<TDto> ProjectFromEntityToDto<TEntity,TDto>(Func<IQueryable<TEntity>, IQueryable<TEntity>> query) where TEntity : class
+        public IQueryable<TDto> ProjectFromEntityToDto<TEntity, TDto>(Func<IQueryable<TEntity>, IQueryable<TEntity>> query) where TEntity : class
         {
             var entityInfo = _context.GetEntityInfoThrowExceptionIfNotThere(typeof(TEntity));
+
+            // The configuration should already have been applied when registering - the next line is commented out.
+            //TypeAdapterConfig<TEntity,TDto>.NewConfig().SetIgnoreReadOnly(_configAndMapper.MapsterReadConfig.IgnoreReadOnlyAttributes);
+
             return query(_context.Set<TEntity>())
-                .ProjectTo<TDto>(_configAndMapper.MapperReadConfig);
+               .ProjectToType<TDto>();
         }
 
         /// <inheritdoc />
@@ -195,7 +200,7 @@ namespace GenericServices.PublicButHidden
 
         /// <inheritdoc />
         public TEntity UpdateAndSave<TEntity>(JsonPatchDocument<TEntity> patch, params object[] keys) where TEntity : class
-        {         
+        {
             return LocalUpdateAndSave(patch, () => _context.Find<TEntity>(keys));
         }
 

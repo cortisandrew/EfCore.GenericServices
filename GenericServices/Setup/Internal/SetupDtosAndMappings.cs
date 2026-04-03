@@ -1,14 +1,15 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using System.Linq;
-using System.Reflection;
-using AutoMapper;
 using GenericServices.Configuration;
 using GenericServices.Internal.Decoders;
 using GenericServices.PublicButHidden;
+using Mapster;
+using Microsoft.AspNetCore.Components.Forms;
 using StatusGeneric;
+using System;
+using System.Linq;
+using System.Reflection;
 
 namespace GenericServices.Setup.Internal
 {
@@ -42,26 +43,18 @@ namespace GenericServices.Setup.Internal
 
         public static IWrappedConfigAndMapper CreateConfigAndMapper(IGenericServicesConfig config, MappingProfile readProfile, MappingProfile saveProfile)
         {
-            var mapperReadConfig = new MapperConfiguration(cfg =>
-            {
-                cfg.AddProfile(readProfile);
-            });
-            var mapperSaveConfig = new MapperConfiguration(cfg =>
-            {
-                cfg.AddProfile(saveProfile);
-            });
-            return new WrappedAndMapper(config, mapperReadConfig, mapperSaveConfig);
+            return new WrappedAndMapper(config, readProfile, saveProfile);
         }
 
         public static void SetupMappingForDto(RegisterOneDtoType dtoRegister, MappingProfile readProfile, MappingProfile saveProfile)
         {
             //Now build the mapping using the ConfigGenerator in the register
-            dtoRegister.ConfigGenerator.Accessor.AddReadMappingToProfile(readProfile);
-            //Only add a mapping if AutoMapper can be used to update/create the entity
+            dtoRegister.ConfigGenerator.Accessor.ConfigureReadMapping(readProfile);
+
             if (dtoRegister.EntityInfo.EntityStyle != EntityStyles.DDDStyled &&
                 dtoRegister.EntityInfo.EntityStyle != EntityStyles.ReadOnly)
             {
-                dtoRegister.ConfigGenerator.Accessor.AddSaveMappingToProfile(saveProfile);
+                dtoRegister.ConfigGenerator.Accessor.ConfigureSaveMapping(saveProfile);
             }
         }
 

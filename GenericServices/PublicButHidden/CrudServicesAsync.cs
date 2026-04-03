@@ -1,19 +1,20 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
-using AutoMapper.QueryableExtensions;
 using GenericServices.Configuration.Internal;
+using GenericServices.Helpers.GenericServices.Helpers;
 using GenericServices.Internal;
 using GenericServices.Internal.Decoders;
 using GenericServices.Internal.LinqBuilders;
 using GenericServices.Internal.MappingCode;
+using Mapster;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.EntityFrameworkCore;
 using StatusGeneric;
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace GenericServices.PublicButHidden
 {
@@ -77,7 +78,7 @@ namespace GenericServices.PublicButHidden
             {
                 //else its a DTO, so we need to project the entity to the DTO and select the single element
                 var projector = new CreateMapper(_context, _configAndMapper, typeof(T), entityInfo);
-                result = await ((IQueryable<T>) projector.Accessor.GetViaKeysWithProject(keys))
+                result = await ((IQueryable<T>)projector.Accessor.GetViaKeysWithProject(keys))
                     .SingleOrDefaultAsync().ConfigureAwait(false);
             }
 
@@ -136,8 +137,11 @@ namespace GenericServices.PublicButHidden
         public IQueryable<TDto> ProjectFromEntityToDto<TEntity, TDto>(Func<IQueryable<TEntity>, IQueryable<TEntity>> query) where TEntity : class
         {
             var entityInfo = _context.GetEntityInfoThrowExceptionIfNotThere(typeof(TEntity));
+
+            TypeAdapterConfig<TEntity, TDto>.NewConfig().SetIgnoreReadOnly(_configAndMapper.MapsterReadConfig.IgnoreReadOnlyAttributes);
+
             return query(_context.Set<TEntity>())
-                .ProjectTo<TDto>(_configAndMapper.MapperReadConfig);
+               .ProjectToType<TDto>();
         }
 
         /// <inheritdoc />

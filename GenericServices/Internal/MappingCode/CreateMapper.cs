@@ -1,17 +1,18 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
+using GenericServices.Helpers.GenericServices.Helpers;
+using GenericServices.Internal.Decoders;
+using GenericServices.Internal.LinqBuilders;
+using GenericServices.PublicButHidden;
+using Mapster;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
-using AutoMapper.QueryableExtensions;
-using GenericServices.Internal.Decoders;
-using GenericServices.Internal.LinqBuilders;
-using GenericServices.PublicButHidden;
-using Microsoft.EntityFrameworkCore;
 
 namespace GenericServices.Internal.MappingCode
 {
@@ -29,7 +30,7 @@ namespace GenericServices.Internal.MappingCode
             //Accessor = Activator.CreateInstance(genericType, context, configAndMapper, entityInfo);
         }
 
-        public dynamic Accessor { get;  }
+        public dynamic Accessor { get; }
 
         //This is only public for performance tests
         public static Func<DbContext, IWrappedConfigAndMapper, DecodedEntityClass, dynamic> GetNewGenericMapper(Type genericType, ConstructorInfo ctor)
@@ -68,7 +69,19 @@ namespace GenericServices.Internal.MappingCode
 
             public void MapDtoToEntity(TDto dto, object entity)
             {
-                _wrappedMapper.MapperSaveConfig.CreateMapper().Map(dto, entity);
+                if (_wrappedMapper.MapsterSaveConfig == null)
+                {
+                    dto.Adapt(entity);
+                }
+                else
+                {
+                    // The configuration should already have been applied when registering - the next line is commented out.
+                    //TypeAdapterConfig<TEntity, TDto>.NewConfig().SetIgnoreReadOnly(_wrappedMapper.MapsterSaveConfig.IgnoreReadOnlyAttributes);
+
+                    // second parameter, is not required, but is not nullable
+                    // the Adapt call is chosen based on whether MapsterSaveConfig exists
+                    dto.Adapt(entity);
+                }
             }
 
             /// <summary>
@@ -98,18 +111,19 @@ namespace GenericServices.Internal.MappingCode
             public IQueryable<TDto> GetViaKeysWithProject(params object[] keys)
             {
                 var predicate = _entityInfo.PrimaryKeyProperties.CreateFilter<TEntity>(keys);
-                return _context.Set<TEntity>().Where(predicate).ProjectTo<TDto>(_wrappedMapper.MapperReadConfig);
+                return _context.Set<TEntity>().Where(predicate).ProjectToType<TDto>();
             }
 
             public IQueryable<TDto> ProjectAndThenApplyWhereExpression(Expression<Func<TDto, bool>> whereExpression)
             {
-                return _context.Set<TEntity>().ProjectTo<TDto>(_wrappedMapper.MapperReadConfig).Where(whereExpression);
+                return _context.Set<TEntity>().ProjectToType<TDto>().Where(whereExpression);
             }
 
             public IQueryable<TDto> GetManyProjectedNoTracking()
             {
-                return _context.Set<TEntity>().AsNoTracking().ProjectTo<TDto>(_wrappedMapper.MapperReadConfig);
+                return _context.Set<TEntity>().AsNoTracking().ProjectToType<TDto>();
             }
+
 
             private IQueryable<TEntity> ApplyAnyIncludeStringsAtDbSetLevel(DbSet<TEntity> dbSet)
             {

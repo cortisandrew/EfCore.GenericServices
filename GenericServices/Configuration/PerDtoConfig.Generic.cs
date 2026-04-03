@@ -1,8 +1,7 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using AutoMapper;
+using Mapster;
 
 namespace GenericServices.Configuration
 {
@@ -11,21 +10,33 @@ namespace GenericServices.Configuration
     /// </summary>
     /// <typeparam name="TDto"></typeparam>
     /// <typeparam name="TEntity"></typeparam>
-    public abstract class PerDtoConfig<TDto,TEntity> : PerDtoConfig
+    public abstract class PerDtoConfig<TDto, TEntity> : PerDtoConfig
         where TDto : class where TEntity : class
     {
         //-------------------------------------------------
-        //Properties to alter the AutoMapper Read and Save mappings
+        //Properties to set the Mapster Read and Save mappings
 
         /// <summary>
-        /// This allows you to add to the AutoMapper's read mapping, i.e. from Entity class to DTO/ViewModel
-        /// For instance you can use .ForMember(...) to set a specific LINQ for certain properties - see BookListDto example
+        /// This allows you to configure Mapster's type adapter setter for the reader, i.e. from Entity class to DTO/ViewModel
         /// </summary>
-        public virtual Action<IMappingExpression<TEntity, TDto>> AlterReadMapping { get { return null; } }
-
+        /// <returns>
+        /// true if overridden and configured, false otherwise. It is important to return true if you override this method!
+        /// </returns>
+        public virtual bool ConfigureReadMapping(out TypeAdapterSetter<TEntity, TDto> typeAdapterSetter)
+        {
+            typeAdapterSetter = null;
+            return false;
+        }
         /// <summary>
-        /// This allows you to alter the AutoMapper create/update mapping, i.e. from DTO/ViewModel to Entity class 
+        /// This allows you to configure the Mapster's type adapter setter for the create/update, i.e. from DTO/ViewModel to Entity class 
         /// </summary>
-        public virtual Action<IMappingExpression<TDto, TEntity>> AlterSaveMapping { get { return null; } }
+        /// <returns>
+        /// true if overridden and configured, false otherwise. It is important to return true if you override this method!
+        /// </returns>
+        public virtual bool ConfigureSaveMapping(out TypeAdapterSetter<TDto, TEntity> typeAdapterSetter)
+        {
+            typeAdapterSetter = null;
+            return false;
+        }
     }
 }

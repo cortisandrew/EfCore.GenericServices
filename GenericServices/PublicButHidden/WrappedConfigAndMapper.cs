@@ -1,9 +1,11 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using AutoMapper;
 using GenericServices.Configuration;
+using GenericServices.Helpers.GenericServices.Helpers;
+using GenericServices.Setup.Internal;
+using Mapster;
+using System;
 
 namespace GenericServices.PublicButHidden
 {
@@ -18,35 +20,38 @@ namespace GenericServices.PublicButHidden
         IGenericServicesConfig Config { get; }
 
         /// <summary>
-        /// This is the AutoMapper configuration used for reading/projection from entity class to DTO
+        /// This is the Mapster configuration used for reading/projection from entity class to DTO
         /// </summary>
-        MapperConfiguration MapperReadConfig { get; }
+        MappingProfile MapsterReadConfig { get; }
 
         /// <summary>
-        /// This is the AutoMapper configuration used for copying from a DTO to the entity class
+        /// This is the Mapster configuration used for copying from a DTO to the entity class
         /// </summary>
-        MapperConfiguration MapperSaveConfig { get; }
+        MappingProfile MapsterSaveConfig { get; }
+
     }
 
     /// <summary>
-    /// This contains the AutoMapper setting needed by GenericServices
+    /// This contains the Mapster setting needed by GenericServices
     /// </summary>
     public class WrappedAndMapper : IWrappedConfigAndMapper
     {
-        internal WrappedAndMapper(IGenericServicesConfig config, MapperConfiguration mapperReadConfig, MapperConfiguration mapperSaveConfig)
+
+        internal WrappedAndMapper(IGenericServicesConfig config, MappingProfile mapsterReadConfig = null, MappingProfile mapsterSaveConfig = null)
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
-            MapperReadConfig = mapperReadConfig ?? throw new ArgumentNullException(nameof(mapperReadConfig));
-            MapperSaveConfig = mapperSaveConfig ?? throw new ArgumentNullException(nameof(mapperSaveConfig));
+            MapsterReadConfig = mapsterReadConfig;
+            MapsterSaveConfig = mapsterSaveConfig;
         }
 
         /// <inheritdoc />
         public IGenericServicesConfig Config { get; }
 
         /// <inheritdoc />
-        public MapperConfiguration MapperReadConfig { get; }
+        public MappingProfile MapsterReadConfig { get; }
+       
 
         /// <inheritdoc />
-        public MapperConfiguration MapperSaveConfig { get; }
+        public MappingProfile MapsterSaveConfig { get; }
     }
 }
