@@ -1,13 +1,13 @@
 ﻿// Copyright (c) 2021 Jon P Smith, GitHub: JonPSmith, web: http://www.thereformedprogrammer.net/
 // Licensed under MIT license. See License.txt in the project root for license information.
 
-using System;
-using System.Linq;
-using AutoMapper;
 using GenericServices;
 using GenericServices.Configuration;
 using GenericServices.PublicButHidden;
 using GenericServices.Setup;
+using Mapster;
+using System;
+using System.Linq;
 using Tests.EfClasses;
 using Tests.EfCode;
 using TestSupport.EfHelpers;
@@ -49,14 +49,17 @@ namespace Tests.UnitTests.TestIssues
 
         public class Issue47DtoConfig : PerDtoConfig<Issue47Dto, ParentOneToOne>
         {
-            public override Action<IMappingExpression<ParentOneToOne, Issue47Dto>> AlterReadMapping
-        {
-            get
+            public override bool ConfigureReadMapping(out TypeAdapterSetter<ParentOneToOne, Issue47Dto> typeAdapterSetter)
             {
-                return cfg => cfg.ForMember(d => d.OneToOneMyString, 
-                    opt => opt.MapFrom(s => s.OneToOne.MyString));
+                typeAdapterSetter = TypeAdapterConfig<ParentOneToOne, Issue47Dto>
+                .NewConfig()
+                .Map(
+                    dest => dest.OneToOneMyString,
+                    src => src.OneToOne.MyString
+                );
+
+                return true;
             }
-        }
         }
     }
 }
